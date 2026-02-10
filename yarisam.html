@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilik Yarışması - Dairəvi Taymer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #010409;
+            --accent: #00f2ff;
+            --danger: #ff004c;
+            --gold: #ffcc00;
+            --correct: #00ff88;
+        }
+
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+        }
+
+        /* Dairəvi Taymer */
+        .timer-box {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 40px;
+        }
+
+        svg {
+            transform: rotate(-90deg);
+            width: 180px;
+            height: 180px;
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 10;
+            stroke-linecap: round;
+        }
+
+        .bg-circle {
+            stroke: rgba(255, 255, 255, 0.1);
+        }
+
+        #progress-circle {
+            stroke: var(--accent);
+            stroke-dasharray: 502; /* 2 * PI * r (r=80) */
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+        }
+
+        #time-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4.5rem;
+            font-weight: 900;
+            color: var(--accent);
+            transition: all 0.2s;
+        }
+
+        /* Sual Kartı */
+        .question-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 40px;
+            padding: 60px 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #question-text { font-size: 2.3rem; margin: 0; font-weight: 500; }
+        #answer-text { font-size: 4rem; color: var(--correct); text-transform: uppercase; margin: 0; }
+
+        /* Effektlər */
+        .pulse-danger {
+            animation: pulse-ani 0.5s infinite alternate;
+            color: var(--danger) !important;
+        }
+
+        @keyframes pulse-ani {
+            from { transform: translate(-50%, -50%) scale(1); }
+            to { transform: translate(-50%, -50%) scale(1.25); }
+        }
+
+        .next-btn {
+            margin-top: 40px;
+            background: var(--gold);
+            color: black;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 100px;
+            cursor: pointer;
+            visibility: hidden;
+            transition: 0.3s;
+        }
+
+        .next-btn:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(255, 204, 0, 0.4); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="timer-box">
+        <svg>
+            <circle class="bg-circle" cx="90" cy="90" r="80"></circle>
+            <circle id="progress-circle" cx="90" cy="90" r="80"></circle>
+        </svg>
+        <div id="time-text">30</div>
+    </div>
+
+    <div class="question-card">
+        <div id="q-content">
+            <h2 id="question-text">Başlamaq üçün ekrana toxunun...</h2>
+        </div>
+        <div id="answer-area" style="display: none;">
+            <div style="color: #888; margin-bottom: 10px; font-size: 1.2rem;">DÜZGÜN CAVAB</div>
+            <h1 id="answer-text"></h1>
+        </div>
+    </div>
+
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">NÖVBƏTİ SUAL <i class="fas fa-chevron-right"></i></button>
+</div>
+
+<script>
+    const quizData = [
+    { q: "1)Azərbaycan dilində hansı səslə söz başlamır?", a: "ı və ğ" },
+    { q: "2)Türk dillərinin «dəmir qanunu» adlanan qanun hansıdır?", a: "Ahəng qanunu" },
+    { q: "3)Azərbaycan Əlifbası və Dili Günü nə vaxt qeyd olunur?", a: "1 Avqust" },
+    { q: "4)'Bilməz' sözü feilin hansı zamanındadır?", a: "Qeyri-qəti gələcək zaman" },
+    { q: "5)'Qocalıq' sözü konkret isimdir, yoxsa mücərrəd?", a: "Mücərrəd" },
+    { q: "6)İsmin hansı halı cümlədə yalnız tamamlıq olur?", a: "Təsirlik hal" },
+    { q: "7)'Boyca', 'yaşca' sözlərində işlənən '-ca' nədir?", a: "Qoşma" },
+    { q: "8)'Dağılmaq' sözünün kökü hansı nitq hissəsidir?", a: "Feil" },
+    { q: "9)'Bostan bitkisi' birləşməsində 'bostan' sözü hansı haldadır?", a: "Qeyri-müəyyən yiyəlik hal" },
+    { q: "10)Frazeoloji birləşmələrdən hansı səhvdir: 'Göz qoymaq' yoxsa 'Özündən getmək'?", a: "Özündən getmək" },
+    { q: "11)Multilinqual insanlar kimlərdir?", a: "Çoxdilli (ikidən çox dil bilən) insanlar" },
+    { q: "12)Konstitusiyanın neçənci maddəsi dövlət dili haqqındadır?", a: "21-ci maddə" },
+    { q: "13)Tofiq Bayramın misrasında şair kimlərə nankor, nacins deyir?", a: "Öz ana dilini bilməyənlərə" },
+    { 
+        q: "14)Dilimizin qrammatikasında hansı dil qanunu yalnız türk dillərinə məxsusdur? Buna «dəmir qanun» da deyilir.", 
+        a: "Ahəng qanunu" 
+    },
+    { 
+        q: "15)Azərbaycan tarix boyu hansı əlifbalardan istifadə etmişdir?", 
+        a: "Ərəb, Latın və Kiril əlifbaları" 
+    },
+    { 
+        q: "16)Tofiq Bayramın misrasını tamamlayın: 'Mən nankor deyirəm, nacins deyirəm...'", 
+        a: "Öz ana dilini bilməyənlərə" 
+    },
+    { q: "17)Türk dillərinin «dəmir qanunu» hansıdır?", a: "Ahəng qanunu" },
+    { 
+        q: "18)Azərbaycan Respublikası Konstitusiyasının neçənci maddəsi dövlət dili haqqındadır?", 
+        a: "21-ci maddə" 
+    },
+    { q: "19)Təsriflənən feil,yoxsa məsdər ismi xəbər ola bilməz?"},
+    { 
+            q: "İsimləşmiş sifətlər morfoloji təhlil zamanı hansı nitq hissəsi kimi götürülür?", 
+            a: "Sifət" 
+        },
+    { 
+        q: "'Bunları oxumaqda fayda var' cümləsində feil hansı təsriflənməyən formadadır?", 
+        a: "Məsdər forması (oxumaqda)." 
+    }
+
+];
+
+    let current = 0;
+    let seconds = 30;
+    let timer;
+    let gameStarted = false;
+
+    // Səs faylları
+    const tickSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    const alertSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'); // Gərginlik səsi
+    const gongSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'); // Gong
+
+    function startTimer() {
+        clearInterval(timer);
+        seconds = 30;
+        updateUI();
+
+        timer = setInterval(() => {
+            seconds--;
+            updateUI();
+
+            if (seconds > 5) {
+                tickSnd.currentTime = 0;
+                tickSnd.play().catch(() => {});
+            } else if (seconds <= 5 && seconds > 0) {
+                document.getElementById('time-text').classList.add('pulse-danger');
+                document.getElementById('progress-circle').style.stroke = 'var(--danger)';
+                alertSnd.currentTime = 0;
+                alertSnd.play().catch(() => {});
+            }
+
+            if (seconds <= 0) {
+                clearInterval(timer);
+                gongSnd.play().catch(() => {});
+                showAnswer();
+            }
+        }, 1000);
+    }
+
+    function updateUI() {
+        document.getElementById('time-text').innerText = seconds;
+        // Dairəvi barın hesablanması: 502 tam dairədir
+        const offset = 502 - (502 * seconds) / 30;
+        document.getElementById('progress-circle').style.strokeDashoffset = offset;
+    }
+
+    function showAnswer() {
+        document.getElementById('q-content').style.display = 'none';
+        document.getElementById('answer-area').style.display = 'block';
+        document.getElementById('answer-text').innerText = quizData[current].a;
+        document.getElementById('next-btn').style.visibility = 'visible';
+        document.getElementById('time-text').classList.remove('pulse-danger');
+    }
+
+    function nextQuestion() {
+        current++;
+        if (current < quizData.length) {
+            document.getElementById('q-content').style.display = 'block';
+            document.getElementById('answer-area').style.display = 'none';
+            document.getElementById('next-btn').style.visibility = 'hidden';
+            document.getElementById('progress-circle').style.stroke = 'var(--accent)';
+            document.getElementById('question-text').innerText = quizData[current].q;
+            startTimer();
+        } else {
+            document.querySelector('.container').innerHTML = "<h1>Yarışma Bitdi! 🏆</h1>";
+        }
+    }
+
+    window.onclick = () => {
+        if (!gameStarted) {
+            gameStarted = true;
+            document.getElementById('question-text').innerText = quizData[0].q;
+            startTimer();
+        }
+    };
+</script>
+
+</body>
+</html>
