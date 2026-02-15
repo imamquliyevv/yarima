@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilik Yarışması - Premium Edition</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #050a18;
+            --card-bg: rgba(16, 25, 46, 0.8);
+            --accent: #00f2ff;
+            --danger: #ff004c;
+            --gold: #ffcc00;
+            --correct: #00ff88;
+            --text-main: #e0e6ed;
+        }
+        #question-text ul {
+        list-style: none;      /* nöqtələri silir */
+        padding: 0;
+        margin: 15px 0 0 0;
+        text-align: left;
+        }
+        #question-text {
+        width: 95%;
+        text-align: center; /* sual ortada qalsın */
+}
+
+        #question-text li {
+        margin-bottom: 8px;    /* variantlar arasında məsafə */
+        font-size: 1.2rem;
+        line-height: 1.6;
+        }
+        .next-btn {
+    display: none; /* ilkin olaraq gizlidir */
+    margin-top: 30px;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    padding: 15px 45px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-transform: uppercase;
+    box-shadow: 0 10px 20px rgba(255, 204, 0, 0.2);
+}
+
+        body {
+            background: radial-gradient(circle at center, #1a2a4a 0%, #050a18 100%);
+            color: var(--text-main);
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .options-horizontal {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0 0 0;
+        display: flex;
+        gap: 75px;
+        flex-wrap: wrap;
+        }
+
+        .options-vertical {
+        list-style: none;
+        padding: 0;
+        margin: 15px 0 0 0;
+        }
+
+        .options-horizontal li,
+        .options-vertical li {
+        border-radius: 5px;
+        background: rgba(0, 242, 255, 0.1);
+        cursor: pointer;
+        font-size: 1.5rem;
+        transition: 0.2s;
+        }
+
+        .options-horizontal li:hover,
+        .options-vertical li:hover {
+        background: rgba(0, 242, 255, 0.3);
+        }
+
+        /* Arxa fon bəzəyi */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--accent);
+            filter: blur(150px);
+            opacity: 0.1;
+            top: 10%;
+            left: 10%;
+            z-index: -1;
+        }
+
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+            position: relative;
+        }
+
+        /* Dairəvi Taymer */
+        .timer-box {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 0 auto 30px;
+            filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3));
+        }
+
+        svg {
+            transform: rotate(-90deg);
+            width: 160px;
+            height: 160px;
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 9;
+            stroke-linecap: round;
+        }
+
+        .bg-circle {
+            stroke: rgba(255, 255, 255, 0.05);
+        }
+
+        #progress-circle {
+            stroke: var(--accent);
+            stroke-dasharray: 502;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+        }
+
+        #time-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        #question-number {
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: var(--gold);
+            margin-bottom: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        #question-number::before, #question-number::after {
+            content: "";
+            width: 50px;
+            height: 2px;
+            background: var(--gold);
+            opacity: 0.5;
+        }
+
+        /* Sual Kartı */
+        .question-card {
+            background: var(--card-bg);
+            border-radius: 30px;
+            padding: 50px 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Kartın kənarındakı neon xətt */
+        .question-card::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+
+        #question-text { 
+            font-size: 1.8rem; 
+            margin: 0; 
+            font-weight: 400; 
+            line-height: 1.4;
+            color: #fff;
+        }
+
+        /* Cavab Sahəsi */
+        #answer-area {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        #answer-text { 
+            font-size: 2.8rem; 
+            color: var(--correct); 
+            text-transform: uppercase; 
+            margin: 0; 
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Effektlər */
+        .pulse-danger {
+            animation: pulse-ani 0.4s infinite alternate;
+            color: var(--danger) !important;
+        }
+
+        @keyframes pulse-ani {
+            from { transform: translate(-50%, -50%) scale(1); }
+            to { transform: translate(-50%, -50%) scale(1.15); }
+        }
+
+        /* Növbəti Düyməsi */
+        .next-btn {
+    margin-top: 30px;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    padding: 15px 45px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: 0.3s;
+    text-transform: uppercase;
+    box-shadow: 0 10px 20px rgba(255, 204, 0, 0.2);
+}
+
+        .next-btn:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 15px 30px rgba(255, 204, 0, 0.4); 
+            background: #fff;
+        }
+
+        .fa-brain { font-size: 1.5rem; color: var(--gold); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="timer-box">
+        <svg>
+            <circle class="bg-circle" cx="80" cy="80" r="75"></circle>
+            <circle id="progress-circle" cx="80" cy="80" r="75"></circle>
+        </svg>
+        <div id="time-text">60</div>
+    </div>
+
+    <div id="question-number">
+        <i class="fas fa-lightbulb"></i> SUAL 1
+    </div>
+
+    <div class="question-card">
+    <div id="q-content">
+        <h2 id="question-text">Yarışa başlamaq üçün istənilən yerə toxunun</h2>
+    </div>
+    <!-- Növbəti düyməsini burada qoyuruq, amma JS-də ilk sual üçün gizlədəcəyik -->
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">NÖVBƏTİ <i class="fas fa-arrow-right"></i></button>
+    </div>
+
+<script>
+    // 1ci merhele
+    const quizData = [
+    { q: "'Qocalıq' sözü konkret isimdir, yoxsa mücərrəd?" },
+    { q: "'Balaca' sözü hansı nitq hissəsidir?" },
+    { q: "Türk dillərinin «dəmir qanunu» adlanan qanun hansıdır?"},
+    
+    
+    //2ci merhele
+    {
+    q: `Nöqtələrin yerinə uyğun gələn sözləri müəyyənləşdirin.
+
+    <div style="margin-top:15px; font-size:1.3rem; line-height:1.1;">
+    1. Ağlın &nbsp;&nbsp;&nbsp;
+    2. Özündən &nbsp;&nbsp;&nbsp;
+    3. Axmaq <br>
+    4. para &nbsp;&nbsp;&nbsp;
+    5. El
+    </div>
+
+    <div style="margin-top:25px; text-align:left; font-size:1.1rem; line-height:1.1;">
+        Mərd ... bilər, namərd özgədən.<br>
+    Ağıllı öyrənməyi xoşlar, ... öyrətməyi.<br>
+    Dəvəcə boyun olunca, düyməcə ... olsun.<br>
+    ... yandıran şamı söndürmək olmaz.<br>
+    Elm ... ilə yox, çalışmaqla ələ gəlir.
+    </div>
+
+    <ul class="options-horizontal" style="margin-top:25px;">
+    <li>A) 2,3,1,5,4</li>
+    <li>B) 2,5,1,4,3</li>
+    <li>C) 4,1,2,5,3</li>
+    <li>D) 1,4,2,3,5</li>
+    <li>E) 4,2,5,1,3</li>
+    </ul>
+    `,
+    },
+    { 
+    q: `Sözlərdən birinin leksik mənası düzgün izah olunmamışdır
+    <ul>
+        <ul class="options-vertical">
+        <li>A) nikbin – kədərli, dərdli</li>
+        <li>B) ümman – böyük dəniz, okean</li>
+        <li>C) riyakar – ikiüzlü, hiyləgər</li>
+        <li>D) xəzan – payızda yarpaqların tökülməsi</li>
+        <li>E) nəfəslik – pəncərənin balaca gözü</li>
+    </ul>`, 
+    },
+    { q: "'Bostan bitkisi' birləşməsində 'bostan' sözü hansı   haldadır? " },
+
+
+
+
+    //3cu merhele
+    {
+    q: `Nöqtələrin yerinə uyğun olan əvəzliklərin düzgün ardıcıllığı müəyyən edin.
+
+    <div style="margin-top:20px; text-align:left; font-size:1.3rem; line-height:2;">
+    1. ... vətən qarşısında ... borcunu verməlidir.<br>
+    2. ... sualın cavabını ... bilmirdi.<br>
+    3. Qapının ağzında … dayanmışdı.
+    </div>
+
+    <ul class="options-vertical" style="margin-top:25px;">
+    <li>A) Hamı, öz, bu, heç kim, kimsə</li>
+    <li>B) Hər şey, kim, özüm, həmin o</li>
+    <li>C) Özüm, kimsə, heç kim, öz, hər kəs</li>
+    <li>D) Hər, öz, heç kim, hamı, bu</li>
+    <li>E) Heç kim, hamı, öz, kimsə, hərə</li>
+    </ul>
+    `,
+    },
+    { q: "İsmin hansı halı cümlədə yalnız tamamlıq olur?" },
+    { q: "'Boyca' , 'Yaşca' sözlərində işlənən '-ca' nədir?" },
+
+
+
+    //4cu merhele
+    { 
+    q: `Frazeoloji birləşmələrdən hansı səhvdir:
+    <ul>
+        <ul class="options-vertical">
+        <li>A) 'Göz qoymaq' -  nəzarət etmək</li>
+        <li>B) 'Özündən getmək' - özündən çıxmaq</li>
+        <li>C) 'Baş qoşmamaq' - əhəmyyət verməmək</li>
+        <li>D) 'Ucuz tutmaq' - lazımi dəyəri verməmək</li>
+        <li>E) 'Ah çəkmək' - qüssədən köks ötürmək</li>
+    </ul>`, 
+    },
+    { 
+    q: `Söz sonunda b,d,g,c samitlərindən sonra samitlə başlayan şəkilçi artırdıqda son samit kar qarşılığına keçir.Aşağıdakı sözlərdən biri bu qaydaya tabə olmur.
+    <ul>
+        <ul class="options-horizontal">
+        <li>A) çəkic</li>
+        <li>B) qab</li>
+        <li>C) tüfəng</li>
+        <li>D) qılınc</li>
+        <li>E) bulud</li>
+    </ul>`,
+    },
+    { q: "Azərbaycan Əlifbası və Dili Günü nə vaxt qeyd olunur?" },
+
+
+
+    //5ci merhele
+    { q: "'Bilməz' sözü feilin hansı zamanındadır?"},
+    { q: "'Dağılmaq' sözünün kökü hansı nitq hissəsidir?"},
+    { q: "Multilinqual insanlar kimlərdir?"},
+
+
+    //6ci merhele
+    { q: "Mən nankor deyirəm, nacins deyirəm- ...?...  ...?...  ...?...  Tofiq Bayram kimlərə nankor, nacins deyir?"},    
+    { q: "İsimləşmiş sifətlər morfoloji təhlil zamanı hansı nitq hissəsi kimi götürülür?" },
+    { q: "'Bəri' sözü hansı köməkçi nitq hissəsi kimi işlənə bilir ?"},
+    { q: "Hansı hissəciklə işlənmiş feillərdən sonra vergül qoyulmalıdır?"},
+    
+];
+
+    let current = 0;
+    let seconds = 60;
+    let timer;
+    let gameStarted = false;
+    let warningPlayed = false;
+
+    const tickSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    const alertSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
+    <!--const gongSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');-->
+
+    function startTimer() {
+        clearInterval(timer);
+        seconds = 60;
+        warningPlayed = false;
+        updateUI();
+
+        timer = setInterval(() => {
+            seconds--;
+            updateUI();
+
+            // --- yalnız 5-ci saniyədə xəbərdarlıq çal ---
+        if (seconds === 5 && !warningPlayed) {
+            warningPlayed = true;
+
+            document.getElementById('time-text').classList.add('pulse-danger');
+            document.getElementById('progress-circle').style.stroke = 'var(--danger)';
+                alertSnd.currentTime = 0;
+                alertSnd.play().catch(() => {});
+        }
+
+        // --- digər bütün saniyələrdə normal tik-tak ---
+        if (seconds > 0 && seconds !== 5) {
+            tickSnd.currentTime = 0;
+            tickSnd.play().catch(() => {});
+        }
+
+            if (seconds <= 0) {
+            clearInterval(timer);
+            
+
+            
+        }
+        
+        }, 1000);
+    }
+
+    function updateUI() {
+        document.getElementById('time-text').innerText = seconds;
+        const offset = 502 - (502 * seconds) / 60;
+        document.getElementById('progress-circle').style.strokeDashoffset = offset;
+    }
+
+
+    function nextQuestion() {
+
+    clearInterval(timer); // əvvəlki saniyə sayımı dayanır
+    current++;
+
+    if (current < quizData.length) {
+
+        document.getElementById('question-number').innerHTML =
+            `<i class="fas fa-lightbulb"></i> SUAL ${current + 1}`;
+
+        document.getElementById('question-text').innerHTML = quizData[current].q;
+
+        document.getElementById('time-text').classList.remove('pulse-danger');
+        document.getElementById('progress-circle').style.stroke = 'var(--accent)';
+
+        startTimer(); // yeni sual → yeni 60 saniyə
+    }
+    else {
+        document.querySelector('.container').innerHTML =
+            "<h1 style='font-size:3rem; color:var(--gold)'>TƏBRİKLƏR! 🏆<br><span style='font-size:1.5rem; color:#fff;'>Yarışmanı bitirdiniz.</span></h1>";
+    }
+}
+    window.onclick = () => {
+    if (!gameStarted) {
+        gameStarted = true;
+        current = 0; // birinci sual
+        document.getElementById('question-number').innerHTML = `<i class="fas fa-lightbulb"></i> SUAL 1`;
+        document.getElementById('question-text').innerHTML = quizData[current].q;
+
+        // İlk sual üçün Növbəti düyməsini göstər
+        document.getElementById('next-btn').style.display = 'inline-block';
+
+        startTimer();
+    }
+    };
+</script>
+
+</body>
+</html>
